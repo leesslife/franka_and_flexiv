@@ -1,5 +1,5 @@
 var mqtt = require("mqtt")
-var client = mqtt.connect("mqtt://localhost:18080")
+var client = mqtt.connect("mqtt://localhost:1883")
 
 // 连接后订阅temp topic
 client.on('connect', (e) => {

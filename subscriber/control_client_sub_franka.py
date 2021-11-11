@@ -1,5 +1,5 @@
 #!/usr/bin/python3.8
-from os import path
+from os import EX_CANTCREAT, path
 import sys
 from typing import ValuesView, cast
 from numpy.core.fromnumeric import take
@@ -9,6 +9,10 @@ from argparse import ArgumentParser
 import paho.mqtt.client as mqtt 
 from time import sleep
 import numpy as np
+import csv
+import _thread
+import time
+import os
 
 class RobotControl(object):
     def __init__(self):
@@ -18,13 +22,16 @@ class RobotControl(object):
 
         #Connect to the robot
         self.robot_init()
-
+        self.payload=""
         #Robot state
         #0 is stop
         #1 is runing
         self.state=0
         self.taskqueque=[]
         self.dynamic_rel=[0.15]
+        self.backid="None"
+        self.client=mqtt.Client()
+        self.client.connect("127.0.0.1",1883,100)
     
     def robot_init(self):
         #Connect to the robot
@@ -72,8 +79,48 @@ class RobotControl(object):
                 else:
                     return Value
 
-    def op_franka_joint_motion(self):
-        payloadstring=self.taskqueque[0].payload.decode()
+    def get_cmd_value(self,pathlist,pathlen):
+        index_L=pathlist.find("[")
+        index_R=pathlist.find("]")
+        if (index_L==-1) and (index_R==-1):
+            self.exit_error_info("cant find '[' or ']' set!")
+            return -9999
+        elif (index_L==-1) and (index_R!=-1):
+            self.exit_error_info("cant find '['!")
+            return -9999
+        elif (index_L!=-1) and (index_R==-1):
+            self.exit_error_info("cant find ']'!")
+            return -9999
+        else:
+            if index_L>=index_R:
+                self.exit_error_info("'[' and ']' set wrong!")
+                return -9999
+            else:
+                motionString=pathlist[index_L+1:index_R].replace(" ","")
+                
+                #motionString=''.join([i for i in motionString if not i.isalpha()])
+                #print(motionString)
+                try:
+                    Value=motionString.split(',') # get Value
+                    Value[0]=float(Value[0])
+                    Value[1]=float(Value[1])
+                except Exception as e:
+                    #print("Vaule can`t be converted!")
+                    self.exit_error_info("Vaule can`t be converted!")
+                    return -9999
+                if len(Value)!=pathlen:
+                    self.exit_error_info("the length of cmd data is wrong!")
+                    return -9999
+                else:
+                    return Value
+
+    def send_next_robot_sig(self,send_message):
+        if self.backid!="None":
+            self.client.publish(self.backid,payload=send_message,qos=0)
+            self.backid="None"
+    
+    def op_franka_joint_motion(self,payload):
+        payloadstring=payload
         indexJ=payloadstring.find("jointmotion")
         indexRel=payloadstring.find("dynamic_rel")
         joint_motionMap={"joint_motion":[0.1, -0.785398163397448279, 0.0, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279],
@@ -120,6 +167,7 @@ class RobotControl(object):
         print(joint_motionMap["joint_motion"])
         self.robot.set_dynamic_rel(joint_motionMap["dynamic_rel"])
         joint_motion=JointMotion(joint_motionMap["joint_motion"])
+        self.send_next_robot_sig("begin next robot control!")
         self.robot.move(joint_motion)
         sleep(0.05)
         try:
@@ -127,8 +175,8 @@ class RobotControl(object):
         except Exception as e:
             print("franka option is over!")
 
-    def op_franka_waypoints_motion(self):
-        payloadstring=self.taskqueque[0].payload.decode()
+    def op_franka_waypoints_motion(self,payload):
+        payloadstring=payload
         pathlist=payloadstring.split('|')
         pathmaplist=[]
         for i in range(len(pathlist)):
@@ -219,14 +267,15 @@ class RobotControl(object):
                     self.robot.set_dynamic_rel(pathmaplist[j]['dynamic_rel'])  
         print(pathmaplist)
         motion_down=WaypointMotion(waypointList)
+        self.send_next_robot_sig("begin next robot control!")
         #self.robot.move(motion_down)  //some wrong for ruig
         try:
             self.taskqueque.pop(0)
         except Exception as e:
             print("franka option is over!") 
     
-    def op_franka_rfwaypoints_motion(self):
-        payloadstring=self.taskqueque[0].payload.decode()
+    def op_franka_rfwaypoints_motion(self,payload):
+        payloadstring=payload
         pathlist=payloadstring.split('|')
         pathmaplist=[]
         for i in range(len(pathlist)):
@@ -300,11 +349,12 @@ class RobotControl(object):
         #print(rfwaypointlist)
         motion_down_rfwaypoint=MoveWaypointMotion(rfwaypointlist)
         self.robot.move(motion_down_rfwaypoint)
+        self.send_next_robot_sig("begin next robot control!")
         self.taskqueque.pop(0)
         return 
 
-    def op_franka_franka_grasp(self):
-        graspString=self.taskqueque[0].payload.decode()
+    def op_franka_franka_grasp(self,payload):
+        graspString=payload
         graspsetlist=graspString.split("__")
         graspMap={"gripper_speed":0.02,"gripper_forced":20.0,"clamp":0}
 
@@ -340,32 +390,157 @@ class RobotControl(object):
         gripper.gripper_forced=graspMap["gripper_forced"]
         if graspMap["clamp"]==1:
             gripper.clamp()
+            self.send_next_robot_sig("begin next robot control!")
             self.exit_error_info("clamp")
             return 
         else:
             try:
+                self.send_next_robot_sig("begin next robot control!")
                 gripper.release(3.0)
             except Exception as e: 
                 print("no wrong")
             self.exit_error_info("no wrong")
             return 
-                       
+
+    def read_joint_value(self,readcount=-1,readinterval=0.5,logfile="default_J_save"):
+        count=0
+        filecheck=os.path.exists("../reader/save/"+logfile+".csv")
+        if filecheck==False:
+            fp=open("../reader/save/"+logfile+".csv",'w')
+        else:
+            fp=open("../reader/save/"+logfile+".csv",'a')
+        writer=csv.writer(fp)
+
+        if readcount>0:
+            if readinterval>0.02: 
+                while count<readcount:
+                    sleep(readinterval)
+                    count+=1
+                    state=self.robot.read_once()
+                    jointlist=state.q
+                    jointlist.append(time.ctime())
+                    print("flexiv joint Value is :",jointlist)
+                    writer.writerow(jointlist)
+
+            else:
+                print("use default read intervals!")
+                while count<readcount:
+                    sleep(0.5)
+                    count+=1
+                    #print(self.robot.current_pose())
+                    state=self.robot.read_once()
+                    jointlist=state.q
+                    jointlist.append(time.ctime())
+                    print("flexiv joint Value is :",jointlist)
+                    writer.writerow(jointlist)
+                    #jv=",".join(self.read_joint_pos())
+                    #self.mqttclient.publish('read_flexiv_jv',payload=jv+"|"+logfile,qos=0)
+       
+    def read_cartesian_value(self,readcount=-1,readinterval=0.5,logfile="default_J_save"):
+        count=0
+        filecheck=os.path.exists("../reader/save/"+logfile+".csv")
+        if filecheck==False:
+            fp=open("../reader/save/"+logfile+".csv",'w')
+        else:
+            fp=open("../reader/save/"+logfile+".csv",'a')
+        writer=csv.writer(fp)
+
+        if readcount>0:
+            if readinterval>0.02: 
+                while count<readcount:
+                    sleep(readinterval)
+                    count+=1
+                    cartesianAffine=self.robot.current_pose()
+                    state=self.robot.read_once()
+                    cartesianlist=[cartesianAffine.x,
+                                   cartesianAffine.y,
+                                   cartesianAffine.z,
+                                   cartesianAffine.a,
+                                   cartesianAffine.b,
+                                   cartesianAffine.c]
+                    cartesianlist.append(state.elbow)
+                    cartesianlist.append(time.ctime())
+                    print("flexiv cartesian Value is :",cartesianlist)
+                    writer.writerow(cartesianlist)
+
+            else:
+                print("use default read intervals!")
+                while count<readcount:
+                    sleep(0.5)
+                    count+=1
+                    cartesianlist=self.robot.current_pose()
+                    state=self.robot.read_once()
+                    #cartesianlist.append(state.elbow)
+                    cartesianlist.append(time.ctime())
+                    print("flexiv cartesian Value is :",cartesianlist)
+                    writer.writerow(cartesianlist)
+                    #jv=",".join(self.read_joint_pos())
+                    #self.mqttclient.publish('read_flexiv_jv',payload=jv+"|"+logfile,qos=0)
+
+    def op_franka_read_joint_value(self,payload):
+        try:
+            Value=self.get_cmd_value(payload,3)
+            #_thread.start_new_thread(self.read_joint_value,(Value[0],Value[1],Value[2]))
+            self.read_joint_value(Value[0],Value[1],Value[2])
+            sleep(0.05)
+        except:
+            print("Error:读取数据失败")
+        pass
+
+    def op_franka_read_cartesian_value(self,payload):
+        try:
+            Value=self.get_cmd_value(payload,3)
+            #_thread.start_new_thread(self.read_cartesian_value,(Value[0],Value[1],Value[2]))
+            self.read_cartesian_value(Value[0],Value[1],Value[2])
+            sleep(0.05)
+        except:
+            print("Error:读取数据失败")
+        pass
+
+    def parserID(self):
+        con=self.taskqueque[0].payload.decode()
+        conlist=con.split("@@")
+        self.payload=conlist[0]
+        #self.taskqueque.pop(0)
+        if len(conlist)==1:
+            self.payload=conlist[0]
+        elif len(conlist)==2:
+            self.payload=conlist[0]
+            self.backid=conlist[1]
+        else:
+            self.exit_error_info("invalid cmd！")
+            return
+
     def run(self):
         self.state=1
-        fb_flag=[0,0]
         while len(self.taskqueque)!=0:
+            self.parserID()
             if self.taskqueque[0].topic=='franka_joint_motion':
-                self.op_franka_joint_motion()
+                self.op_franka_joint_motion(self.payload)
             elif self.taskqueque[0].topic=="franka_waypoints_motion":
                 # Affine(double x, double y, double z, double a = 0.0, double b = 0.0, double c = 0.0)
-                self.op_franka_waypoints_motion()
+                self.op_franka_waypoints_motion(self.payload)
             elif self.taskqueque[0].topic=="franka_rfwaypoint_motion":
-                self.op_franka_rfwaypoints_motion()
+                self.op_franka_rfwaypoints_motion(self.payload)
             elif self.taskqueque[0].topic=="franka_dynamic_rel":
-                self.robot.set_dynamic_rel(float(self.taskqueque[0].payload))
+                self.robot.set_dynamic_rel(float(self.payload))
                 self.taskqueque.pop(0)
             elif self.taskqueque[0].topic=="franka_grasp":
-                self.op_franka_franka_grasp()
+                self.op_franka_franka_grasp(self.payload)
+            elif self.taskqueque[0].topic=="read_franka_joint":
+                self.op_franka_read_joint_value(self.payload)
+                try:
+                    self.taskqueque.pop(0)
+                except Exception as e:
+                    print("taskqueque is empty!")
+                pass
+            elif self.taskqueque[0].topic=="read_franka_cartesian":
+                self.op_franka_read_cartesian_value(self.payload)
+                try:
+                    self.taskqueque.pop(0)
+                except Exception as e:
+                    print("taskqueque is empty!")
+                pass
             else:
                 self.state=0
                 print("no match control mode set value!")
@@ -400,9 +575,6 @@ class mqttFranka(object):
         self.client.loop_forever()
 
 
-
-    
-
 if __name__=="__main__":
     mqttclient=mqttFranka('127.0.0.1',1883,600)
     mqttclient.sub('franka_joint_motion')
@@ -410,4 +582,6 @@ if __name__=="__main__":
     mqttclient.sub('franka_rfwaypoint_motion')
     mqttclient.sub('franka_dynamic_rel')
     mqttclient.sub('franka_grasp')
+    mqttclient.sub('read_franka_joint')
+    mqttclient.sub('read_franka_cartesian')
     mqttclient.loop()

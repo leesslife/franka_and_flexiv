@@ -5,26 +5,69 @@ import paho.mqtt.client as mqtt
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with result code: " + str(rc))
-
+'''
 def on_message(client, userdata, msg):
     print(msg.topic + " " + str(msg.payload))
+    if msg.topic=="myname":
+        client.publish('flexiv_joint_motion',payload="jointmotion=[-0.0155,-0.451,1.619,1.62,0.001596,0.5288,0.004077]|\
+                                                      max_jnt_vel=[18,18,21,21,42,42,42]|\
+                                                      max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]",qos=0)
 
-# connect mqttserver 
+        client.publish('flexiv_grasp',payload="gripper_speed=[100]__gripper_forced=[100]__clamp=[1]",qos=0)
+
+        client.publish('read_flexiv_joint',payload="[1, 0.5,flexiv_J_save1]",qos=0)
+        client.publish('read_flexiv_cartesian',payload="[1, 0.5,flexiv_P_save1]",qos=0)
+        client.publish('flexiv_joint_motion',payload="jointmotion= [-0.0155,-0.451,0.619,1.62,0.001596,0.5288,0.004077]| \
+                                                      max_jnt_vel=[18,18,21,21,42,42,42]| \
+                                                      max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]@@myname22",qos=0)
+        client.publish('flexiv_grasp',payload="gripper_speed=[100]__gripper_forced=[100]__clamp=[0]",qos=0)
+        client.publish('read_flexiv_joint',payload="[1, 0.5,flexiv_J_save1]",qos=0)
+        client.publish('read_flexiv_cartesian',payload="[1, 0.5,flexiv_P_save1]",qos=0)
+        #client.publish('flexiv_joint_motion',payload="jointmotion= [-0.0155,-0.451,1.619,1.62,0.001596,0.5288,0.004077]",qos=0)
+        
+        
+        #client.publish('flexiv_ptp_motion',payload="ptpmotion= [0.6518,0.211,0.607,0.1675,-0.237,0.94,0.1742]| \
+        #                                            max_jnt_vel=[18,18,21,21,42,42,42]| \
+        #                                            max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]@@myname22",qos=0)
+    if msg.topic=="myname22":
+        client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
+                                                   rfwaypoint_trans=[0.4,0.0, 0.48]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
+                                                   rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Absolute|\
+                                                   rfwaypoint_trans=[0.0,-0.1,0.0]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Relative@@myname",qos=0)
+        
+        client.publish('read_franka_joint',payload="[1, 0.5,franka_J_save1]",qos=0)
+        client.publish('read_franka_cartesian',payload="[1, 0.5,franka_P_save1]",qos=0)
+        
+
+    #client.publish('flexiv_ptp_motion',payload="ptpmotion= [ 0.5518,0.211,0.607,0.1675,-0.237,0.94,0.1742]",qos=0)
+'''
+# connect mqttserver
+''' 
 client=mqtt.Client()
 client.on_connect=on_connect
 client.on_message=on_message
 client.connect('127.0.0.1',1883,100)
-#client.publish("franka_dynamic_rel",payload=0.15,qos=0)
+client.publish("franka_dynamic_rel",payload=0.15,qos=0)
+
+client.publish('read_flexiv_joint',payload="[1, 0.5,flexiv_J_save1]",qos=0)
+client.publish('read_flexiv_cartesian',payload="[1, 0.5,flexiv_P_save1]",qos=0)
+
+client.publish('read_franka_joint',payload="[1, 0.5,franka_J_save1]",qos=0)
+client.publish('read_franka_cartesian',payload="[1, 0.5,franka_P_save1]",qos=0)
+
+
+client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
+                                            mqttclient        rfwaypoint_trans=[0.0,-0.1,0.0]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Relative@@myname",qos=0)
 
 #client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
 #                                                   rfwaypoint_trans=[0.4,0.0, 0.48]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
 #                                                   rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Absolute|\
-#                                                   rfwaypoint_trans=[0.0,-0.1,0.0]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Relative",qos=0)
-
+#                                                   rfwaypoint_trans=[0.0,-0.1,0.0]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Relative@@myname",qos=0)
+'''
 #gripper.gripper_speed=0.02
 #gripper.gripper_forced=20.0
 
-#client.publish("franka_grasp",payload="gripper_speed=[0.02]__gripper_forced=[20.0]__clamp=[1]",qos=0)
+#client.publish("franka_grasp",payload="gripper_speed=[0.02]__gripper_forced=[20.0]__clamp=[1]@@myname2",qos=0)
 # connect franka server
 # static constexpr double max_translation_velocity {1.7}; // [m/s]
 # static constexpr double max_rotation_velocity {2.5}; // [rad/s]
@@ -68,12 +111,18 @@ client.connect('127.0.0.1',1883,100)
 #client.publish('flexiv_joint_motion',payload="jointmotion= [-0.0155,-0.451,1.619,1.62,0.001596,0.5288,0.004077]",qos=0)
 
 #
-client.publish('flexiv_ptp_motion',payload="ptpmotion= [0.6518,0.211,0.607,0.1675,-0.237,0.94,0.1742]| \
-                                            max_jnt_vel=[18,18,21,21,42,42,42]| \
-                                            max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]",qos=0)
+#client.publish('flexiv_ptp_motion',payload="ptpmotion= [0.6518,0.211,0.607,0.1675,-0.237,0.94,0.1742]| \
+#                                            max_jnt_vel=[18,18,21,21,42,42,42]| \
+##                                            max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]",qos=0)
 
-client.publish('flexiv_ptp_motion',payload="ptpmotion= [ 0.5518,0.211,0.607,0.1675,-0.237,0.94,0.1742]",qos=0)
+#client.publish('flexiv_ptp_motion',payload="ptpmotion= [ 0.5518,0.211,0.607,0.1675,-0.237,0.94,0.1742]",qos=0)
 #
-client.publish('flexiv_ptp_motion',payload="ptpmotion=  [0.4518,0.411,0.307,0.1675,-0.237,0.94,0.1742]| \
-                                            max_jnt_vel=[18,18,21,21,42,42,42]| \
-                                            max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]",qos=0)
+#client.publish('flexiv_ptp_motion',payload="ptpmotion=  [0.4518,0.411,0.307,0.1675,-0.237,0.94,0.1742]| \
+#                                            max_jnt_vel=[18,18,21,21,42,42,42]| \
+#                                            max_jnt_acc=[10.8,10.8,12.6,12.6,25.2,25.2,25.2]@@id=myname",qos=0)
+
+'''
+client.subscribe('myname',qos=0)
+client.subscribe('myname22',qos=0)
+client.loop_forever()
+'''
