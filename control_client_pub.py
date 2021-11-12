@@ -85,9 +85,10 @@ client.publish('read_franka_cartesian',payload="[1, 0.5,franka_P_save1]",qos=0)
 # rfwaypoint_R=[rx,ry,rz] eular角
 # control_mode=Relative，Absolute ,主要针对笛卡尔坐标系的相对或绝对移动
 # 主要通过参数client.publish("franka_dynamic_rel",payload=0.15,qos=0) 来调整速度
-client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
+client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,2.14,0.0]__control_mode=Absolute|\
                                             mqttclient        rfwaypoint_trans=[0.0,-0.1,0.0]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Relative@@myname",qos=0)
-
+#client.publish('franka_joint_motion',payload='jointmotion=[0.1, -0.385398163397448279, 0.0, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279]\
+ #                                             dynamix_rel=[0.15]',qos=0)
 #client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
 #                                                   rfwaypoint_trans=[0.4,0.0, 0.48]__rfwaypoint_R=[0.0,3.14,0.0]__control_mode=Absolute|\
 #                                                   rfwaypoint_trans=[0.3,0.0,0.58]__rfwaypoint_R=[0.0,3.14,2.5]__control_mode=Absolute|\
@@ -118,7 +119,7 @@ client.publish('franka_rfwaypoint_motion',payload="rfwaypoint_trans=[0.3,0.0,0.5
 #                                                  waypoint=[0.33, 0,   0.58, 0, 0, 0]|\
 #                                                  dynamic_rel=[0.05]',qos=0)                                        
 #client.publish('franka_joint_motion',payload='0.1, -0.785398163397448279, 0.1, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279',qos=0)
-#client.publish('franka_1oint_motion',payload='0.1, -0.785398163397448279, 0.2, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279',qos=0)
+#client.publish('franka_joint_motion',payload='0.1, -0.785398163397448279, 0.2, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279',qos=0)
 #client.publish('franka_waypoint_motion',payload='0.1, -0.785398163397448279, 0.3, -2.356194490192344837, 0.0, 1.570796326794896558, 0.785398163397448279',qos=0)
 
 # flexiv control api for joint value and tcp value 
