@@ -22,12 +22,12 @@ class calibration(object):
         self.hand_eye=hand_eye
         self.pose_list=[]
         self.init_calib()   
-        self.mtx=mtx
         self.externMat=[]
     
     def init_calib(self):
         self.objp=np.zeros((self.pattern_size[0]*self.pattern_size[1],3),np.float32)
         self.objp[:,:2]=self.square_size*np.mgrid[0:self.pattern_size[0],0:self.pattern_size[1]].T.reshape(-1,2)
+        # 这里又换了回来！
         for i in range(self.pattern_size[0]*self.pattern_size[1]):
             x,y=self.objp[i,0],self.objp[i,1]
             self.objp[i,0],self.objp[i,1]=y,x 
@@ -40,8 +40,10 @@ class calibration(object):
     def detectFeature(self,color,show=True):
         img=color
         self.gray=cv2.cvtColor(img,cv2.COLOR_RGB2GRAY)
+        # 找出焦点
         ret,corners=cv2.findChessboardCorners(img,self.pattern_size,None,
                                               cv2.CALIB_CB_ADAPTIVE_THRESH)
+        # 获取亚像素点
         if ret==True:
             self.objpoints.append(self.objp)
             corners2=corners
@@ -50,8 +52,10 @@ class calibration(object):
                 corners2=corners
             else:
                 corners2=cv2.cornerSubPix(self.gray,corners,(5,5),(-1,-1),self.criteria)
+        # 得到角点的列表
         self.imgpoints.append(corners2)
         if show:
+            # 画出角点来进行观察
             cv2.drawChessboardCorners(img,self.pattern_size,corners2,ret)
             cv2.imshow('findCorners',img)
             if cv2.waitKey(0)==ord('s'):
@@ -72,13 +76,14 @@ class calibration(object):
         return T
 
     def cal(self,optimize=False):
+        # 找出外部矩阵与内部矩阵
         ret,mtx,dist,rvecs,tvecs=cv2.calibrateCamera(self.objpoints,self.imgpoints,self.gray.shape[::-1],self.mtx,None)
         Hg2c=[]
-        pose_list=np.array(self.pose_list)
+        pose_list=np.array(self.pose_list)  # 这张列表里面为 w*h* shape(H)的矩阵
         for i in range(len(rvecs)):
             #tt=self.rodrigues_trans2tr(rvecs[i],tvecs[i]/1000.)
-            tt=self.rodrigues_trans2tr(rvecs[i],tvecs[i])
-            Hg2c.append(tt)
+            tt=self.rodrigues_trans2tr(rvecs[i],tvecs[i])   # 将旋转举证与位移举证变成H举证
+            Hg2c.append(tt)                                 
             self.externMat.append(tt)
 
         Hg2c=np.array(Hg2c)
@@ -88,7 +93,6 @@ class calibration(object):
         camT[:3,:3]=rot
         camT[:3,3]=pos[:,0]
         Hc2m=camT
-        #print(Hc2m)
         return Hc2m
     
                 
