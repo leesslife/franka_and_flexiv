@@ -113,7 +113,7 @@ class calibration(object):
         temp=np.dot(V,sqrtD)           # 乘以新生成的V*sqartD 
         temp=np.dot(temp,V.T)          # V*sqartD&V.T
         Rvag=np.dot(Rbarre,temp)       # Rbarre*V*sqartD&V.T
-        return Rvag
+        return Rvag                    # 他这一顿操作之后 不是R@RT@R=R？
     
     def averageTransformation(self,H):
         '''
@@ -134,181 +134,70 @@ class calibration(object):
         Havg[3,3]=1
         return Havg
 
+def get_pos_rot_from_xyzq(xyzq):
+    pos = np.array([xyzq[0], xyzq[1], xyzq[2]])     #x,y,z
+    rot = batch_quat_to_mat(np.array([[xyzq[3],xyzq[4], xyzq[5], xyzq[6]]]))[0]   # w,x,y,z
+    return pos, rot 
 
-
-'''
 if __name__=="__main__":
     cam=CameraL()
-    num_record=0
-    panda=Panda()
-    while(True):
-        color,depth = cam.get_data()
-        cv2.imshow('vis', color)
-        action=cv2.waitKey(1)
-        if action & 0xFF == ord('q'):
-            cv2.destroyAllWindows() 
-            break
-        if action & 0xFF == ord('s'):
-            print("saving the {}-th data".format(num_record))
-            current_pose = np.array(panda.robot.read_once().O_T_EE).reshape(4, 4).T
-            # time.sleep(1)
-            np.save('./franka/H_{}.npy'.format(num_record), current_pose)
-            cv2.imwrite('./franka/{}.jpg'.format(num_record), color)
-            num_record+=1
-'''
-'''
-if __name__ == "__main__":
-    cam = CameraD400()
-    panda = Panda()
-    jointList = [[-0.16390678621279564, -0.6791972863269473, 0.16378642220873582, -2.494650543919316, 0.10657260429859161, 1.863999169005288, 0.7705911846210559],
-                 [-0.747860636764451, -0.8281878829466498, 1.0318797409540117, -2.3930792641855043, 0.2860740681839982, 1.8532774123880598, 0.7908645075159377],
-                 [-0.23978973600974976, -0.26543558388649235, -0.282111360968205, -2.3520484751316535, 0.27992621284723274, 1.8615258617603918, 0.22772078000066565],
-                 [-0.3200761370750531, -1.266139867682206, 0.1446611231458994, -3.0304218578046225, 0.2911064845522245, 2.036694043362426, 0.457444145068656],
-                 [-0.5073305669280521, -0.4878137231584181, 0.4762185306214449, -2.7689264097338833, 0.2874546642712036, 2.35799840742723, 0.51454026906651],]
-
-    # jointList = [[-0.2552, -1.02, 0.1290, -2.06, 0.348, 1.942, 0.530],  # joint1, up
-    #              [0.956, -1.022, -1.396, -1.57, 0.040, 1.878, -0.3762],  # joint2 right
-    #              [-0.314, -1.01202, 0.180, -2.315, 0.401, 2.122, 0.589],  # joint3 front
-    #              [-1.732, -1.747, 0.3881, -0.871, 1.2427, 1.302, 1.429],  # joint4 left
-    #              ]
-    calib = calibration(cam.mtx)
-    pose_list = []
-    for i, joint in enumerate(jointList):
-        panda.moveJoint(joint)
-        current_pose = np.array(panda.robot.read_once().O_T_EE).reshape(4, 4).T
-        print(current_pose)
-        # time.sleep(1)
-        color, depth = cam.get_data() # output rgb and depth image
-        # while True:
-        #     cv2.imshow('color', color)
-        #     cv2.waitKey(1)
-        #     color, depth = cam.get_data()  # output rgb and depth image
-
-        calib.detectFeature(color)
-        calib.pose_list.append(current_pose)
-
-        # os.makedirs(calib_image_root, exist_ok=True)
-        # os.makedirs(osp.join(calib_image_root, 'color'), exist_ok=True)
-        # os.makedirs(osp.join(calib_image_root, 'depth'), exist_ok=True)
-        # cv2.imwrite(osp.join(calib_image_root, 'depth', 'franka_%0.3d.png' % (i + 1)), depth)
-        # cv2.imwrite(osp.join(calib_image_root, 'color', 'franka_%0.3d.png' % (i + 1)), color)
-        # pose_list.append(current_pose)
-
-    camT = calib.cal(optimize=True)
-    # np.save(osp.join(calib_image_root,'pose_list.npy'), np.array(pose_list))
-    np.save('config/franka_campose.npy',camT)
-
-    pdb.set_trace()
-'''
-'''
-  print("saving the {}-th data".format(num_record))
-            current_pose = np.array(panda.robot.read_once().O_T_EE).reshape(4, 4).T
-            # time.sleep(1)
-            np.save('./franka/H_{}.npy'.format(num_record), current_pose)
-            cv2.imwrite('./franka/{}.jpg'.format(num_record), color)
-            num_record+=1
-'''
-'''
-if __name__=="__main__":
-    cam=CameraL()
-    calib=calibration(cam.mtx)
-
-    flexivimagnum=10
-    
-    for i in range(10):
-        temp=np.load('./franka/H_{}.npy'.format(i))
-        imgtemp=cv2.imread('./franka/{}.jpg'.format(i))
-        calib.images.append(imgtemp)
-        calib.pose_list.append(temp)
-    
-    calib.detectAllFeature()
-    print("======================Franka_hand_eye==============================")
-    H11=calib.cal()
-    print(H11)
-    H12=calib.pose_list[0]@H11@calib.externMat[0]
-    print("======================Franka2G==============================")
-    print(H12)
-
-    calib2=calibration(cam.mtx,pattern_size=(6,8))
-    for i in range(10):
-        temp_r=np.load('./flexiv/r_{}.npy'.format(i))
-        temp_t=np.load('./flexiv/t_{}.npy'.format(i))
-        temp=rodrigues_trans2trmat(temp_r,temp_t)
-        #print(temp)
-        imgtemp=cv2.imread('./flexiv/{}.jpg'.format(i))
-        calib2.images.append(imgtemp)
-        calib2.pose_list.append(temp)
-    
-    calib2.detectAllFeature()
-    print("======================Flexiv_hand_eye==============================")
-    H21=calib2.cal()
-    print(H21)
-    H22=calib2.pose_list[0]@H21@calib2.externMat[0]
-    print("======================Flexiv2Goal==============================")
-    print(H22)
-
-    print("======================frankabase2Flexivbase==============================")
-    print(np.linalg.inv(H22))
-
-    #rd=np.array([[0    ,1.0 ,0.0  ,0.0 ],
-    #             [-1.0 ,0.0 ,0.0  ,0.12],
-    #             [0.0  ,0.0 ,1.0  ,0.0 ],
-    #             [0.0  ,0,0 ,0.0  ,1.0 ]],dtype=float)
-    rd=np.array([0,1.0,0.0,0.0,
-                -1.0,0.0,0.0,0.12,
-                0.0,0.0,1.0,0.0,
-                0.0,0.00,0.0,1.0]).reshape(4,4)
-    #print(rd)
-
-    print(np.dot(np.dot(H12,rd),np.linalg.inv(H22)))
-'''
-
-if __name__=="__main__":
-    #cam=CameraL()
     flexiv = FlexivRobot("192.168.2.100","192.168.2.200")
     #print(flexiv.get_joint_pos())
-    #jointList = [[-0.16390678621279564, -0.6791972863269473, 0.16378642220873582, -2.494650543919316, 0.10657260429859161, 1.863999169005288, 0.7705911846210559],
-    #             [-0.747860636764451, -0.8281878829466498, 1.0318797409540117, -2.3930792641855043, 0.2860740681839982, 1.8532774123880598, 0.7908645075159377],
-    #             [-0.23978973600974976, -0.26543558388649235, -0.282111360968205, -2.3520484751316535, 0.27992621284723274, 1.8615258617603918, 0.22772078000066565],
-    #             [-0.3200761370750531, -1.266139867682206, 0.1446611231458994, -3.0304218578046225, 0.2911064845522245, 2.036694043362426, 0.457444145068656],
-    #             [-0.5073305669280521, -0.4878137231584181, 0.4762185306214449, -2.7689264097338833, 0.2874546642712036, 2.35799840742723, 0.51454026906651],]
+    jointList = [[ 0.57415557,-0.63808942,-0.36224535,1.06023717,-0.07712983,0.05254694,1.64508402],
+                 [ 0.36230326,-0.5789426 ,-0.38528445,1.06835866,0.20858671 ,0.09320185,1.64508605],
+                 [ 0.08745624,-0.59872097,-0.35263091,1.08790219,0.39574349 ,0.08156291,1.24172497],
+                 [ 0.44913852,-0.05271466,0.07169211 ,1.7189635 ,-0.26682037,0.24607733,1.98834431],
+                 [ 0.05322517,-0.20821288,-0.21772449,1.42384195,0.20912233 ,0.13523588,1.4372431 ],
+                 [ 0.26435652,-0.63727915,-0.15906759,1.32645059,-0.00560286,0.43366978,1.63151181],
+                 [ 0.05058723,-0.60423452,-0.17162758,1.30044985,0.2946589  ,0.38322628,1.35885429],
+                 [ 0.25154066,-0.47618136,-0.10336179,1.98862803,-0.00307886,1.27898288,1.65889716],
+                 [ 0.18193814,-0.75773472,-0.09209981,1.4511745 ,0.09069394 ,0.64562631,1.60264587],]
    
-    #calib=calibration(cam.mtx)
-    #for i,joint in enumerate(jointList):
-    while True:
-        #panda.moveJoint(joint)
-        #color,depth=cam.get_data()
-        #cv2.imshow("vis",color)
-        #action=cv2.waitKey(1)
-        #if action & 0xFF ==ord('q'):
-            #break
-        #if action & 0xFF ==ord('s'):
-            #print("saving the {}-th data".format(i))
-        current_pose = np.array(flexiv.get_joint_pos())
-        print(current_pose)
-            #current_Joint = np.array(panda.robot.read_once().q)
-            #print(current_Joint)
-            #np.save('./save/flexiv/H_{}.npy'.format(i), current_pose)
-            #cv2.imwrite('./save/franka/{}.jpg'.format(i), color)
-        pass
+    calib=calibration(cam.mtx,pattern_size=(8,6))
 
-'''
+    for i,joint in enumerate(jointList):
+        array=np.array(joint)
+        flexiv.move_jnt_pos(array,
+                            max_jnt_vel=[12, 12, 14, 14, 28, 28, 28],
+                            max_jnt_acc=[7.2, 7.2, 8.4, 8.4, 16.8, 16.8, 16.8])
+
+        color,depth=cam.get_data()
+        cv2.imshow("vis",color)
+        action=cv2.waitKey(-1)
+        if action & 0xFF ==ord('q'):
+            break
+        if action & 0xFF ==ord('s'):
+            print("saving the {}-th data".format(i))
+            pos, rot = get_pos_rot_from_xyzq(flexiv.get_tcp_pose())
+            np.save('./save/flexiv/t_{}.npy'.format(i), pos)
+            np.save('./save/flexiv/r_{}.npy'.format(i), rot)
+            cv2.imwrite('./save/flexiv/{}.jpg'.format(i), color)
+            continue
+    array_s=np.array([ 0.55921108,-0.46804309,0.13940856 ,1.26770318,-0.00258606,0.62576026,1.60263598])
+    flexiv.move_jnt_pos(array_s,
+                        max_jnt_vel=[12, 12, 14, 14, 28, 28, 28],
+                        max_jnt_acc=[7.2, 7.2, 8.4, 8.4, 16.8, 16.8, 16.8])
+
     imgnum=len(jointList)
 
     for i in range(imgnum):
-        temp=np.load('./save/franka/H_{}.npy'.format(i))
-        imgtemp=cv2.imread('./save/franka/{}.jpg'.format(i))
+        temp_r=np.load('./save/flexiv/r_{}.npy'.format(i))
+        print(temp_r)
+        temp_t=np.load('./save/flexiv/t_{}.npy'.format(i))
+        temp=rodrigues_trans2trmat(temp_r,temp_t)
+        imgtemp=cv2.imread('./save/flexiv/{}.jpg'.format(i))
         calib.images.append(imgtemp)
         calib.pose_list.append(temp)
-        
+  
     calib.detectAllFeature()
-    print("======================Franka_hand_eye==============================")
-    H_Fr2C=calib.cal()
-    print(H_Fr2C)
-    
+    print("======================Flexiv_hand_eye==============================")
+    HFlH2C=calib.cal()
+    print(HFlH2C)
+
+    print("======================Flexiv_to_Goal==============================")
     HF2GL=[]
     for i in range(len(calib.pose_list)):
-        HF2GL.append(calib.pose_list[i]@H_Fr2C@calib.externMat[0])
-    print("======================Franka_world_goal==============================")
-    print(calib.averageTransformation(HF2GL))
-    '''
+        HF2GL.append(calib.pose_list[i]@HFlH2C@calib.externMat[0])
+    flexiv2GoalH=calib.averageTransformation(HF2GL)
+    np.save('./save/flexiv2franka/flexiv2GoalH.npy', flexiv2GoalH)
+    print(flexiv2GoalH)

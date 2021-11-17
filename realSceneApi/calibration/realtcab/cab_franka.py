@@ -264,7 +264,7 @@ if __name__=="__main__":
 '''
 
 if __name__=="__main__":
-    cam=CameraL()
+    cam=CameraL(indexCam=1)
     panda=Panda()
     #jointList = [[-0.16390678621279564, -0.6791972863269473, 0.16378642220873582, -2.494650543919316, 0.10657260429859161, 1.863999169005288, 0.7705911846210559],
     #             [-0.747860636764451, -0.8281878829466498, 1.0318797409540117, -2.3930792641855043, 0.2860740681839982, 1.8532774123880598, 0.7908645075159377],
@@ -311,8 +311,11 @@ if __name__=="__main__":
     H_Fr2C=calib.cal()
     print(H_Fr2C)
     
+
+    print("======================Franka_to_Goal==============================")
     HF2GL=[]
     for i in range(len(calib.pose_list)):
         HF2GL.append(calib.pose_list[i]@H_Fr2C@calib.externMat[0])
-    
-    print(calib.averageTransformation(HF2GL))
+    franka2GoalH=calib.averageTransformation(HF2GL)
+    np.save('./save/flexiv2franka/franka2GoalH.npy', franka2GoalH)
+    print(franka2GoalH)

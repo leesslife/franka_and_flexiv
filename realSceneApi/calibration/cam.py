@@ -3,13 +3,19 @@ import numpy as np
 import cv2
 
 class CameraL(object):
-    def __init__(self):
+    def __init__(self,indexCam=0):
         self.pipeline=rs.pipeline()   # 配置管道流
         self.config=rs.config()      # 生成配置容器
         self.config.enable_stream(rs.stream.depth,1280,720,rs.format.z16,30)
         self.config.enable_stream(rs.stream.color,1280,720,rs.format.bgr8,30)
         self.align_to=rs.stream.color
         self.align=rs.align(self.align_to)  # 对齐颜色空间，给颜色空间加入深度信息
+        # 获取想要的详解
+        connect_device=[]
+        for d in rs.context().devices:
+            if d.get_info(rs.camera_info.name).lower() != 'platform camera':
+                connect_device.append(d.get_info(rs.camera_info.serial_number))
+        self.config.enable_device(connect_device[indexCam])
         self.pipeline_proflie=self.pipeline.start(self.config)
         self.device=self.pipeline_proflie.get_device()
         advanced_mode=rs.rs400_advanced_mode(self.device)
