@@ -5,6 +5,7 @@ import numpy as np
 import os
 import json
 import h5py
+
 class realsense:
 
     def __init__(self,config=None):
@@ -599,18 +600,41 @@ class realsenseManager:
         config = rs.config()
         config.enable_device(serial_number)
         return realsense(config)
-    
+
+
+
 if __name__ == '__main__':
-    cam=realsense()
-    cam.start(resolution='720p',depth_preset=3,
-              color_scheme=0,histogram_equalization=True,enable_ir_emitter=1)
-    color_intr_flexiv,depth_intr_flexiv,depth_to_color_extr_flexiv,cam_para_flexiv=cam.getCamPara(robot_name="Flexiv")
-    color_intr_franka,depth_intr_franka,depth_to_color_extr_franka,cam_para_franka=cam.getCamPara(robot_name="Franka")
-    filter_holefilling = cam.filterHoleFilling(1)
-    filter_spatial = cam.filterSpatial(5,0.25,50)
-    filter_decimation = cam.filterDecimation(3)
-    
-    cam.videoStream(filter_decimation,filter_spatial,max_shotcut=100,save_dir='./test')
+    #cam=realsense()
+    #cam.start(resolution='720p',depth_preset=3,color_scheme=0,histogram_equalization=True,enable_ir_emitter=1)
+    #color_intr_flexiv,depth_intr_flexiv,depth_to_color_extr_flexiv,cam_para_flexiv=cam.getCamPara(robot_name="Flexiv")
+    #color_intr_franka,depth_intr_franka,depth_to_color_extr_franka,cam_para_franka=cam.getCamPara(robot_name="Franka")
+    #filter_holefilling = cam.filterHoleFilling(1)
+    #filter_spatial = cam.filterSpatial(5,0.25,50)
+    #filter_decimation = cam.filterDecimation(3)
+    '''
+    camInfo=GetACamPara()
+
+    while 1:
+        key = cv2.waitKey(1) & 0xFF    
+        color_img_flexiv, depth_map_flexiv, depth_img_flexiv=camInfo.getImage(robot_name="Flexiv")
+        color_img_franka, depth_map_franka, depth_img_franka=camInfo.getImage(robot_name="Franka")
+        color_intr_flexiv,depth_intr_flexiv=camInfo.getIntrInfo(robot_name="Flexiv")
+        color_intr_franka,depth_intr_franka=camInfo.getIntrInfo(robot_name="Franka")
+        print(color_intr_flexiv.fx)
+        print(depth_intr_flexiv.fx)
+        print(color_intr_franka.fx)
+        print(depth_intr_franka.fx)
+        color_depth_flexiv=np.hstack((color_img_flexiv, depth_img_flexiv))
+        color_depth_franka=np.hstack((color_img_franka, depth_img_franka))
+        color_depth=np.vstack((color_depth_flexiv,color_depth_franka))
+        cv2.imshow("test", color_depth)
+                
+        if key== 27: # esc
+            break
+            
+    #cam.videoStream(filter_decimation,filter_spatial,max_shotcut=100,save_dir='./test')
     #color_intr,depth_intr,depth_to_color_extr,cam_para\
     #=cam.getCamPara(save=False,save_dir='./cam_para')
-    cam.stop()
+    #cam.stop()
+    camInfo.stop()
+    '''

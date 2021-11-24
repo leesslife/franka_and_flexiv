@@ -50,10 +50,10 @@ class calibration(object):
             self.objpoints.append(self.objp)
             corners2=corners
             if(cv2.__version__).split('.')=='2':
-                cv2.cornerSubPix(self.gray,corners,(5,5),(-1,-1),self.criteria)
+                cv2.cornerSubPix(self.gray,corners,(11,11),(-1,-1),self.criteria)
                 corners2=corners
             else:
-                corners2=cv2.cornerSubPix(self.gray,corners,(5,5),(-1,-1),self.criteria)
+                corners2=cv2.cornerSubPix(self.gray,corners,(11,11),(-1,-1),self.criteria)
         # 得到角点的列表
         self.imgpoints.append(corners2)
         if show:
@@ -309,13 +309,14 @@ if __name__=="__main__":
     calib.detectAllFeature()
     print("======================Franka_hand_eye==============================")
     H_Fr2C=calib.cal()
+    np.save('./save/flexiv2franka/frankaH2E.npy', H_Fr2C)
     print(H_Fr2C)
     
 
     print("======================Franka_to_Goal==============================")
     HF2GL=[]
     for i in range(len(calib.pose_list)):
-        HF2GL.append(calib.pose_list[i]@H_Fr2C@calib.externMat[0])
+        HF2GL.append(calib.pose_list[i]@H_Fr2C@calib.externMat[i])
     franka2GoalH=calib.averageTransformation(HF2GL)
     np.save('./save/flexiv2franka/franka2GoalH.npy', franka2GoalH)
     print(franka2GoalH)
