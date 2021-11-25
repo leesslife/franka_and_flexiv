@@ -396,7 +396,7 @@ class RobotControl(object):
         else:
             try:
                 self.send_next_robot_sig("begin next robot control!")
-                gripper.release(3.0)
+                gripper.release(0.084214)
             except Exception as e: 
                 print("no wrong")
             self.exit_error_info("no wrong")

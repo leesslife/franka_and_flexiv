@@ -40,15 +40,17 @@ class RobotControl(object):
         self.taskqueque=[]
         self.payload=""
 
+          #gripper init
+        self.gripper=RobotiqGripper("/dev/ttyUSB0")
+        self.gripper.calibrate(0,40)
+        self.gripper.resetActivate()
+        self.gripper.goTomm(40,255,255)
+        
         self.backid="None"
         self.mqttclient=mqtt.Client()
         self.mqttclient.connect("127.0.0.1",1883,100)
 
-        #gripper init
-        self.gripper=RobotiqGripper("/dev/ttyUSB0")
-        self.gripper.calibrate(0,40)
-        self.gripper.activate()
-        self.gripper.goTomm(40,255,255)
+      
     
     def read_joint_pos(self):
         return self.client.get_joint_pos()
