@@ -419,7 +419,7 @@ class RobotControl(object):
                     state=self.robot.read_once()
                     jointlist=state.q
                     jointlist.append(time.ctime())
-                    print("flexiv joint Value is :",jointlist)
+                    print("franka  joint Value is :",jointlist)
                     writer.writerow(jointlist)
 
             else:
@@ -431,10 +431,10 @@ class RobotControl(object):
                     state=self.robot.read_once()
                     jointlist=state.q
                     jointlist.append(time.ctime())
-                    print("flexiv joint Value is :",jointlist)
+                    print("franka joint Value is :",jointlist)
                     writer.writerow(jointlist)
                     #jv=",".join(self.read_joint_pos())
-                    #self.mqttclient.publish('read_flexiv_jv',payload=jv+"|"+logfile,qos=0)
+                    #self.mqttclient.publish('read_franka_jv',payload=jv+"|"+logfile,qos=0)
        
     def read_cartesian_value(self,readcount=-1,readinterval=0.5,logfile="default_J_save"):
         count=0
@@ -460,7 +460,7 @@ class RobotControl(object):
                                    cartesianAffine.c]
                     cartesianlist.append(state.elbow)
                     cartesianlist.append(time.ctime())
-                    print("flexiv cartesian Value is :",cartesianlist)
+                    print("franka cartesian Value is :",cartesianlist)
                     writer.writerow(cartesianlist)
 
             else:
@@ -472,10 +472,10 @@ class RobotControl(object):
                     state=self.robot.read_once()
                     #cartesianlist.append(state.elbow)
                     cartesianlist.append(time.ctime())
-                    print("flexiv cartesian Value is :",cartesianlist)
+                    print("franka cartesian Value is :",cartesianlist)
                     writer.writerow(cartesianlist)
                     #jv=",".join(self.read_joint_pos())
-                    #self.mqttclient.publish('read_flexiv_jv',payload=jv+"|"+logfile,qos=0)
+                    #self.mqttclient.publish('read_franka_jv',payload=jv+"|"+logfile,qos=0)
 
     def op_franka_read_joint_value(self,payload):
         try:
